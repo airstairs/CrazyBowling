@@ -1,6 +1,6 @@
 # CrazyBowling
 shit. for android  
-
+shit. for windows
 <img src="icon.png" style="width: 77px;">  
 
 <img src="recording.gif" style="width:300px">  
