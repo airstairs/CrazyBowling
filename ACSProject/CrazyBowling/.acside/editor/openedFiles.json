@@ -1,0 +1,50 @@
+{
+  "allFiles": [
+    {
+      "file": "/storage/emulated/0/AndroidIDEProjects/CrazyBowling/app/src/main/AndroidManifest.xml",
+      "selection": {
+        "end": {
+          "column": 0,
+          "index": 963,
+          "line": 24
+        },
+        "start": {
+          "column": 0,
+          "index": 963,
+          "line": 24
+        }
+      }
+    },
+    {
+      "file": "/storage/emulated/0/AndroidIDEProjects/CrazyBowling/app/src/main/kotlin/com/xthan/crazybowling/MainActivity.kt",
+      "selection": {
+        "end": {
+          "column": 0,
+          "index": 31,
+          "line": 1
+        },
+        "start": {
+          "column": 0,
+          "index": 31,
+          "line": 1
+        }
+      }
+    },
+    {
+      "file": "/storage/emulated/0/AndroidIDEProjects/CrazyBowling/app/src/main/res/layout/activity_main.xml",
+      "selection": {
+        "end": {
+          "column": 0,
+          "index": 382,
+          "line": 12
+        },
+        "start": {
+          "column": 0,
+          "index": 382,
+          "line": 12
+        }
+      }
+    }
+  ],
+  "selectedFile": "/storage/emulated/0/AndroidIDEProjects/CrazyBowling/app/src/main/res/layout/activity_main.xml"
+}

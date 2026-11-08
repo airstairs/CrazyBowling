@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Crazy Bowling</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #000;
+        }
+
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 340px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 6px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-label {
+            color: #f1c40f;
+        }
+
+        #health-bar-container {
+            width: 100%;
+            background-color: #444;
+            height: 18px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #touch-controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+        }
+
+        #action-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: rgba(231, 76, 60, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+
+        #joystick-base {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            transform: translate(-50%, -50%);
+            z-index: 8;
+        }
+
+        #joystick-stick {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #instructions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            color: white;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 20;
+        }
+
+        #start-btn {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(139, 0, 0, 0.9);
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 30;
+            padding: 20px;
+        }
+
+        #game-over h1 {
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            animation: flash 0.8s infinite alternate;
+        }
+
+        #restart-location-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #f1c40f;
+            color: #111;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        @keyframes flash {
+            from { opacity: 0.6; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stats-row">
+            <span>PINS: <span id="pins-score-val" class="stat-label">0</span></span>
+            <span>HIGH SCORE: <span id="high-score-val" class="stat-label">0</span></span>
+        </div>
+        <div><strong>HEALTH</strong></div>
+        <div id="health-bar-container">
+            <div id="health-bar"></div>
+        </div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div id="touch-controls"></div>
+    <div id="action-btn">INTERACT<br>/ THROW</div>
+    
+    <div id="joystick-base">
+        <div id="joystick-stick"></div>
+    </div>
+
+    <div id="instructions">
+        <h1>Bowling Survival</h1>
+        <p>sorry, it is impolite to bowl here, thank you</p>
+        <button id="start-btn">TAP TO PLAY</button>
+    </div>
+
+    <div id="game-over">
+        <h1>shitcha died bruh</h1>
+        <p style="margin-bottom: 20px; font-size: 18px;">Pins Cleared This Round: <span id="final-pins-val" style="color:#f1c40f; font-weight:bold;">0</span></p>
+        <button id="restart-location-btn">Try bowling somewhere else instead</button>
+    </div>
+
+    <!-- CDN link to Three.js -->
+    <script src="three.min.js"></script>
+
+    <script>
+        let scene, camera, renderer;
+        let ground, ball, laneMesh;
+        let health = 100;
+        let isDead = false;
+
+        // Scoring Stats & Persistence
+        let pinsKnockedCount = 0;
+        let highestScore = localStorage.getItem('bowling_high_score') ? parseInt(localStorage.getItem('bowling_high_score')) : 0;
+
+        // Ball Mechanics
+        let isHoldingBall = false;
+        let ballVelocity = new THREE.Vector3();
+        const GRAVITY = 18;
+        const PICKUP_DISTANCE = 4.5;
+        const THROW_FORCE = 55;
+        const BALL_RADIUS = 0.4;
+
+        // Player & Camera Orientation State
+        const playerPosition = new THREE.Vector3(0, 1.6, 5);
+        let cameraYaw = 0;   
+        let cameraPitch = 0; 
+
+        // Enemy State & AI Variables
+        let enemy;
+        let enemyRightHand, enemyKnife;
+        let isEnemyKnockedDown = false;
+        let isHoldingEnemy = false;
+        let isEnemyThrown = false;
+        let enemyKnockdownTimer = 0;
+        let enemyHoldTimer = 0;
+        let enemyVelocity = new THREE.Vector3();
+        let enemyAttackCooldown = 0;
+        const ENEMY_SPEED = 3.2;
+        const ENEMY_RADIUS = 0.5;
+        const ENEMY_THROW_FORCE = 45;
+
+        // Scenery tracking array for refreshing
+        let sceneryObjects = [];
+
+        // Touch Input Tracking
+        let moveTouchId = null;
+        let lookTouchId = null;
+        let moveTouchStart = { x: 0, y: 0 };
+        let moveInput = { x: 0, y: 0 };
+        let lastLookPos = { x: 0, y: 0 };
+
+        let prevTime = performance.now();
+
+        // UI Elements
+        const healthBar = document.getElementById('health-bar');
+        const pinsScoreVal = document.getElementById('pins-score-val');
+        const highScoreVal = document.getElementById('high-score-val');
+        const finalPinsVal = document.getElementById('final-pins-val');
+        const instructions = document.getElementById('instructions');
+        const startBtn = document.getElementById('start-btn');
+        const gameOverScreen = document.getElementById('game-over');
+        const restartLocationBtn = document.getElementById('restart-location-btn');
+        const actionBtn = document.getElementById('action-btn');
+        const touchContainer = document.getElementById('touch-controls');
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickStick = document.getElementById('joystick-stick');
+
+        // Bowling Lane & Pin Data
+        let pins = [];
+        const LANE_START_Z = 3;
+        const LANE_LENGTH = 30;
+        const LANE_END_Z = LANE_START_Z - LANE_LENGTH;
+        const RETURN_RACK_POS = new THREE.Vector3(-1.6, BALL_RADIUS + 0.3, 2.5);
+        let isReturning = false;
+        let pinResetTimer = null;
+
+        // 3D Scoreboard Objects
+        let scoreboardPins3D = [];
+        let scoreCanvas, scoreTexture, scoreContext;
+
+        window.onload = function() {
+            highScoreVal.textContent = highestScore;
+            init();
+            animate();
+        };
+
+        function getRandomHexColor() {
+            const colors = [
+                0xe74c3c, 0x3498db, 0x2ecc71, 0xf1c40f, 0x9b59b6,
+                0x1abc9c, 0xe67e22, 0xe84393, 0x00cec9, 0x6c5ce7
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.rotation.order = 'YXZ';
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(20, 40, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            scene.add(sunLight);
+
+            buildBowlingLane();
+            setupEnvironmentTheme();
+            build3DScoreboard();
+            createPins();
+
+            // Ball Setup with Black Heart Decal
+            const ballGroup = new THREE.Group();
+            const ballGeometry = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);
+            const ballMaterial = new THREE.MeshStandardMaterial({ color: getRandomHexColor(), roughness: 0.3 });
+            const ballMesh = new THREE.Mesh(ballGeometry, ballMaterial);
+            ballMesh.castShadow = true;
+            ballMesh.receiveShadow = true;
+            ballGroup.add(ballMesh);
+
+            const heartShape = new THREE.Shape();
+            heartShape.moveTo(0, 0.08);
+            heartShape.bezierCurveTo(0, 0.15, -0.15, 0.15, -0.15, 0);
+            heartShape.bezierCurveTo(-0.15, -0.12, 0, -0.2, 0, -0.25);
+            heartShape.bezierCurveTo(0, -0.2, 0.15, -0.12, 0.15, 0);
+            heartShape.bezierCurveTo(0.15, 0.15, 0, 0.15, 0, 0.08);
+
+            const extrudeSettings = { depth: 0.02, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.01, bevelThickness: 0.01 };
+            const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+            heartGeo.center();
+            const heartMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2 });
+            const heartMesh = new THREE.Mesh(heartGeo, heartMat);
+            heartMesh.scale.set(0.35, 0.35, 0.35);
+            heartMesh.position.set(0, 0, BALL_RADIUS - 0.02);
+            ballGroup.add(heartMesh);
+
+            ball = ballGroup;
+            ball.position.copy(RETURN_RACK_POS);
+            scene.add(ball);
+
+            createEnemy();
+            setupTouchEvents();
+
+            startBtn.addEventListener('click', () => {
+                instructions.style.display = 'none';
+            });
+
+            actionBtn.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                handleActionClick();
+            });
+
+            restartLocationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetGameWithNewLocation();
+            });
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function setupEnvironmentTheme() {
+            sceneryObjects.forEach(obj => scene.remove(obj));
+            sceneryObjects = [];
+
+            const skyColor = getRandomHexColor();
+            const groundColor = getRandomHexColor();
+
+            scene.background = new THREE.Color(skyColor);
+            scene.fog = new THREE.FogExp2(skyColor, 0.012);
+
+            if (ground) scene.remove(ground);
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: groundColor, roughness: 0.8 });
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            sceneryObjects.push(ground);
+
+            const grid = new THREE.GridHelper(200, 50, 0x000000, 0x225511);
+            grid.position.y = 0.01;
+            scene.add(grid);
+            sceneryObjects.push(grid);
+
+            if (laneMesh) laneMesh.material.color.setHex(getRandomHexColor());
+            if (ball && ball.children[0]) ball.children[0].material.color.setHex(getRandomHexColor());
+
+            for (let i = -12; i <= 12; i += 3) {
+                if (Math.abs(i) < 2) continue;
+
+                const leftTree = createRandomTree();
+                leftTree.position.set(-3.5 - Math.random() * 8, 0, (i * 2.5));
+                scene.add(leftTree);
+                sceneryObjects.push(leftTree);
+
+                const rightTree = createRandomTree();
+                rightTree.position.set(3.5 + Math.random() * 8, 0, (i * 2.5));
+                scene.add(rightTree);
+                sceneryObjects.push(rightTree);
+            }
+        }
+
+        function createRandomTree() {
+            const group = new THREE.Group();
+            const heightFactor = 0.8 + Math.random() * 1.4;
+            const trunkWidth = 0.2 + Math.random() * 0.2;
+            const treeStyle = Math.floor(Math.random() * 3);
+
+            const trunkHeight = 1.8 * heightFactor;
+            const trunkGeo = new THREE.CylinderGeometry(trunkWidth * 0.7, trunkWidth, trunkHeight, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = trunkHeight / 2;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            const foliageColors = [0x1e824c, 0x27ae60, 0x2ecc71, 0xd4ac0d, 0xc0392b, 0x16a085];
+            const leafColor = foliageColors[Math.floor(Math.random() * foliageColors.length)];
+            const leafMat = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.7 });
+
+            if (treeStyle === 0) {
+                const coneHeight = 3.5 * heightFactor;
+                const coneGeo = new THREE.ConeGeometry(1.2 * heightFactor, coneHeight, 8);
+                const leaves = new THREE.Mesh(coneGeo, leafMat);
+                leaves.position.y = trunkHeight + coneHeight / 2 - 0.3;
+                leaves.castShadow = true;
+                group.add(leaves);
+            } else if (treeStyle === 1) {
+                const layers = 3;
+                for (let l = 0; l < layers; l++) {
+                    const layerScale = (1 - l * 0.25) * heightFactor;
+                    const coneGeo = new THREE.ConeGeometry(1.4 * layerScale, 1.8 * layerScale, 8);
+                    const layerMesh = new THREE.Mesh(coneGeo, leafMat);
+                    layerMesh.position.y = trunkHeight + (l * 0.9 * heightFactor);
+                    layerMesh.castShadow = true;
+                    group.add(layerMesh);
+                }
+            } else {
+                const sphereRadius = 1.3 * heightFactor;
+                const sphereGeo = new THREE.SphereGeometry(sphereRadius, 12, 12);
+                sphereGeo.scale(1, 1.2, 1);
+                const leaves = new THREE.Mesh(sphereGeo, leafMat);
+                leaves.position.y = trunkHeight + sphereRadius * 0.8;
+                leaves.castShadow = true;
+                group.add(leaves);
+            }
+
+            return group;
+        }
+
+        function createEnemy() {
+            if (enemy) scene.remove(enemy);
+
+            enemy = new THREE.Group();
+            enemy.rotation.set(0, 0, 0);
+
+            const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.5 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.35;
+            head.castShadow = true;
+            enemy.add(head);
+
+            const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.12, 1.4, 0.3);
+            enemy.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.12, 1.4, 0.3);
+            enemy.add(rightEye);
+
+            const bodyGeo = new THREE.CylinderGeometry(0.25, 0.2, 0.7, 16);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: getRandomHexColor(), roughness: 0.4 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.75;
+            body.castShadow = true;
+            enemy.add(body);
+
+            // Skull graphic on front of shirt
+            const skullGroup = new THREE.Group();
+            const skullHeadGeo = new THREE.SphereGeometry(0.08, 12, 12);
+            skullHeadGeo.scale(1, 1.1, 0.8);
+            const skullMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const skullHead = new THREE.Mesh(skullHeadGeo, skullMat);
+            skullGroup.add(skullHead);
+
+            const jawGeo = new THREE.BoxGeometry(0.08, 0.04, 0.06);
+            const jaw = new THREE.Mesh(jawGeo, skullMat);
+            jaw.position.set(0, -0.08, 0.02);
+            skullGroup.add(jaw);
+
+            skullGroup.position.set(0, 0.8, 0.21);
+            enemy.add(skullGroup);
+
+            // "NO BOWLING ALLOWED" text on back of shirt via Canvas Texture
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = 512;
+            textCanvas.height = 256;
+            const textCtx = textCanvas.getContext('2d');
+            textCtx.fillStyle = 'rgba(0,0,0,0)';
+            textCtx.fillRect(0, 0, 512, 256);
+            
+            textCtx.fillStyle = '#ffffff';
+            textCtx.font = 'bold 36px Arial';
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            textCtx.fillText('NO BOWLING', 256, 90);
+            textCtx.fillText('ALLOWED', 256, 150);
+
+            const textTexture = new THREE.CanvasTexture(textCanvas);
+            const backSignGeo = new THREE.PlaneGeometry(0.4, 0.2);
+            const backSignMat = new THREE.MeshBasicMaterial({ map: textTexture, transparent: true });
+            const backSign = new THREE.Mesh(backSignGeo, backSignMat);
+            backSign.position.set(0, 0.8, -0.21);
+            backSign.rotation.y = Math.PI; // Face backwards
+            enemy.add(backSign);
+
+            const handGeo = new THREE.SphereGeometry(0.09, 12, 12);
+            const handMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+
+            const leftHand = new THREE.Mesh(handGeo, handMat);
+            leftHand.position.set(-0.35, 0.75, 0.1);
+            enemy.add(leftHand);
+
+            enemyRightHand = new THREE.Mesh(handGeo, handMat);
+            enemyRightHand.position.set(0.35, 0.75, 0.1);
+            enemy.add(enemyRightHand);
+
+            enemyKnife = createRandomKnifeModel();
+            enemyRightHand.add(enemyKnife);
+
+            const footGeo = new THREE.SphereGeometry(0.12, 12, 12);
+            footGeo.scale(1, 0.5, 1.4);
+            const footMat = new THREE.MeshStandardMaterial({ color: 0x34495e });
+
+            const leftFoot = new THREE.Mesh(footGeo, footMat);
+            leftFoot.position.set(-0.18, 0.08, 0);
+            enemy.add(leftFoot);
+
+            const rightFoot = new THREE.Mesh(footGeo, footMat);
+            rightFoot.position.set(0.18, 0.08, 0);
+            enemy.add(rightFoot);
+
+            enemy.position.set(0, 0, -12);
+            scene.add(enemy);
+        }
+
+        function createRandomKnifeModel() {
+            const knifeGroup = new THREE.Group();
+            const knifeTypes = ['combat', 'cleaver', 'tactical'];
+            const chosenType = knifeTypes[Math.floor(Math.random() * knifeTypes.length)];
+
+            const handleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 8);
+            const handleMat = new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0x2c3e50 : 0x8b4513 });
+            const handle = new THREE.Mesh(handleGeo, handleMat);
+            handle.rotation.x = Math.PI / 2;
+            knifeGroup.add(handle);
+
+            if (chosenType === 'combat') {
+                const bladeGeo = new THREE.BoxGeometry(0.02, 0.08, 0.4);
+                const bladeMat = new THREE.MeshStandardMaterial({ color: 0xbdc3c7, metalness: 0.9, roughness: 0.2 });
+                const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                blade.position.set(0, 0, 0.22);
+                knifeGroup.add(blade);
+            } else if (chosenType === 'cleaver') {
+                const bladeGeo = new THREE.BoxGeometry(0.03, 0.16, 0.32);
+                const bladeMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6, metalness: 0.95, roughness: 0.1 });
+                const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                blade.position.set(0, 0.04, 0.2);
+                knifeGroup.add(blade);
+            } else {
+                const bladeGeo = new THREE.BoxGeometry(0.025, 0.1, 0.45);
+                const bladeMat = new THREE.MeshStandardMaterial({ color: 0x34495e, metalness: 0.8, roughness: 0.3 });
+                const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                blade.position.set(0, 0, 0.25);
+                knifeGroup.add(blade);
+            }
+
+            return knifeGroup;
+        }
+
+        function resetGameWithNewLocation() {
+            health = 100;
+            isDead = false;
+            pinsKnockedCount = 0;
+            pinsScoreVal.textContent = pinsKnockedCount;
+            healthBar.style.width = '100%';
+            healthBar.style.backgroundColor = '#2ecc71';
+            gameOverScreen.style.display = 'none';
+            actionBtn.style.display = 'flex';
+
+            playerPosition.set(0, 1.6, 5);
+            cameraYaw = 0;
+            cameraPitch = 0;
+
+            isHoldingBall = false;
+            isReturning = false;
+            ball.position.copy(RETURN_RACK_POS);
+            ballVelocity.set(0, 0, 0);
+
+            setupEnvironmentTheme();
+
+            isEnemyKnockedDown = false;
+            isHoldingEnemy = false;
+            isEnemyThrown = false;
+            enemyKnockdownTimer = 0;
+            enemyHoldTimer = 0;
+            createEnemy();
+
+            createPins();
+        }
+
+        function buildBowlingLane() {
+            const laneWidth = 2.4;
+            const laneThickness = 0.1;
+            const laneGeo = new THREE.BoxGeometry(laneWidth, laneThickness, LANE_LENGTH);
+            const laneMat = new THREE.MeshStandardMaterial({ color: 0xda9100, roughness: 0.2, metalness: 0.1 });
+            laneMesh = new THREE.Mesh(laneGeo, laneMat);
+            laneMesh.position.set(0, laneThickness / 2, LANE_START_Z - LANE_LENGTH / 2);
+            laneMesh.receiveShadow = true;
+            scene.add(laneMesh);
+
+            const gutterWidth = 0.4;
+            const gutterGeo = new THREE.BoxGeometry(gutterWidth, 0.05, LANE_LENGTH);
+            const gutterMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
+
+            const leftGutter = new THREE.Mesh(gutterGeo, gutterMat);
+            leftGutter.position.set(-(laneWidth / 2 + gutterWidth / 2), 0.025, laneMesh.position.z);
+            scene.add(leftGutter);
+
+            const rightGutter = new THREE.Mesh(gutterGeo, gutterMat);
+            rightGutter.position.set((laneWidth / 2 + gutterWidth / 2), 0.025, laneMesh.position.z);
+            scene.add(rightGutter);
+
+            const rackBaseGeo = new THREE.BoxGeometry(0.6, 0.5, 3.5);
+            const rackMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.5 });
+            const rack = new THREE.Mesh(rackBaseGeo, rackMat);
+            rack.position.set(RETURN_RACK_POS.x, 0.25, RETURN_RACK_POS.z - 0.5);
+            rack.castShadow = true;
+            scene.add(rack);
+
+            const railGeo = new THREE.BoxGeometry(0.1, 0.1, LANE_LENGTH + 2);
+            const railMat = new THREE.MeshStandardMaterial({ color: 0xbdc3c7, metalness: 0.8, roughness: 0.2 });
+            const rail = new THREE.Mesh(railGeo, railMat);
+            rail.position.set(RETURN_RACK_POS.x, 0.4, laneMesh.position.z);
+            scene.add(rail);
+        }
+
+        function build3DScoreboard() {
+            const boardGroup = new THREE.Group();
+            const centerZ = LANE_END_Z - 1;
+
+            const pillarGeo = new THREE.CylinderGeometry(0.15, 0.15, 5, 16);
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.5 });
+
+            const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
+            leftPillar.position.set(-2, 2.5, centerZ);
+            boardGroup.add(leftPillar);
+
+            const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
+            rightPillar.position.set(2, 2.5, centerZ);
+            boardGroup.add(rightPillar);
+
+            const frameGeo = new THREE.BoxGeometry(4.6, 2.6, 0.3);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            frame.position.set(0, 4.2, centerZ);
+            boardGroup.add(frame);
+
+            const screenGeo = new THREE.PlaneGeometry(4.2, 2.2);
+            
+            scoreCanvas = document.createElement('canvas');
+            scoreCanvas.width = 512;
+            scoreCanvas.height = 256;
+            scoreContext = scoreCanvas.getContext('2d');
+
+            scoreTexture = new THREE.CanvasTexture(scoreCanvas);
+            const screenMat = new THREE.MeshBasicMaterial({ map: scoreTexture });
+            const screen = new THREE.Mesh(screenGeo, screenMat);
+            screen.position.set(0, 4.2, centerZ + 0.16);
+            boardGroup.add(screen);
+
+            scoreboardPins3D = [];
+            const pinRows = 4;
+            const spacingX = 0.35;
+            const spacingY = 0.35;
+            const startY = 4.7;
+
+            const miniPinGeo = new THREE.CylinderGeometry(0.06, 0.1, 0.35, 12);
+
+            let pIdx = 0;
+            for (let row = 0; row < pinRows; row++) {
+                const count = row + 1;
+                const startX = -((count - 1) * spacingX) / 2;
+                for (let col = 0; col < count; col++) {
+                    const x = startX + col * spacingX;
+                    const y = startY - row * spacingY;
+
+                    const miniPinMat = new THREE.MeshStandardMaterial({
+                        color: 0x2ecc71,
+                        emissive: 0x1e824c,
+                        roughness: 0.2
+                    });
+
+                    const miniPin = new THREE.Mesh(miniPinGeo, miniPinMat);
+                    miniPin.position.set(x, y, centerZ + 0.22);
+                    boardGroup.add(miniPin);
+
+                    scoreboardPins3D.push(miniPin);
+                    pIdx++;
+                }
+            }
+
+            scene.add(boardGroup);
+        }
+
+        function createPins() {
+            pins.forEach(p => scene.remove(p.mesh));
+            pins = [];
+
+            const pinRows = 4;
+            const spacingX = 0.42;
+            const spacingZ = 0.45;
+            const startZ = LANE_END_Z + 2.5;
+
+            let pinIndex = 0;
+            for (let row = 0; row < pinRows; row++) {
+                const count = row + 1;
+                const startX = -((count - 1) * spacingX) / 2;
+                for (let col = 0; col < count; col++) {
+                    const x = startX + col * spacingX;
+                    const z = startZ - row * spacingZ;
+                    
+                    const pinMesh = createPinMesh();
+                    pinMesh.position.set(x, 0.1, z);
+                    scene.add(pinMesh);
+
+                    pins.push({
+                        mesh: pinMesh,
+                        initialPos: pinMesh.position.clone(),
+                        velocity: new THREE.Vector3(),
+                        angularVel: new THREE.Vector3(),
+                        isKnockedDown: false
+                    });
+                    pinIndex++;
+                }
+            }
+            updateScoreboard();
+        }
+
+        function createPinMesh() {
+            const group = new THREE.Group();
+            
+            const bodyGeo = new THREE.CylinderGeometry(0.08, 0.14, 0.65, 16);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.3 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.325;
+            body.castShadow = true;
+            group.add(body);
+
+            const stripeGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.06, 16);
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xc0392b });
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.position.y = 0.45;
+            group.add(stripe);
+
+            return group;
+        }
+
+        function updateScoreboard() {
+            let remaining = 0;
+
+            pins.forEach((pin, index) => {
+                if (scoreboardPins3D[index]) {
+                    if (pin.isKnockedDown) {
+                        scoreboardPins3D[index].material.color.setHex(0x333333);
+                        scoreboardPins3D[index].material.emissive.setHex(0x000000);
+                    } else {
+                        scoreboardPins3D[index].material.color.setHex(0x2ecc71);
+                        scoreboardPins3D[index].material.emissive.setHex(0x1e824c);
+                        remaining++;
+                    }
+                }
+            });
+
+            scoreContext.fillStyle = '#050b14';
+            scoreContext.fillRect(0, 0, 512, 256);
+
+            scoreContext.strokeStyle = '#f1c40f';
+            scoreContext.lineWidth = 6;
+            scoreContext.strokeRect(10, 10, 492, 236);
+
+            scoreContext.fillStyle = '#ffffff';
+            scoreContext.font = 'bold 30px monospace';
+            scoreContext.textAlign = 'center';
+            scoreContext.fillText('PIN SCOREBOARD', 256, 45);
+
+            scoreContext.fillStyle = '#f1c40f';
+            scoreContext.font = 'bold 36px monospace';
+
+            scoreTexture.needsUpdate = true;
+        }
+
+        function addPinScore(amount = 1) {
+            pinsKnockedCount += amount;
+            pinsScoreVal.textContent = pinsKnockedCount;
+
+            if (pinsKnockedCount > highestScore) {
+                highestScore = pinsKnockedCount;
+                highScoreVal.textContent = highestScore;
+                localStorage.setItem('bowling_high_score', highestScore);
+            }
+        }
+
+        function setupTouchEvents() {
+            touchContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+            touchContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+            touchContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+            touchContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const halfWidth = window.innerWidth / 2;
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+
+                if (touch.clientX < halfWidth && moveTouchId === null) {
+                    moveTouchId = touch.identifier;
+                    moveTouchStart = { x: touch.clientX, y: touch.clientY };
+                    moveInput = { x: 0, y: 0 };
+
+                    joystickBase.style.display = 'block';
+                    joystickBase.style.left = touch.clientX + 'px';
+                    joystickBase.style.top = touch.clientY + 'px';
+                    joystickStick.style.transform = 'translate(-50%, -50%)';
+                }
+                else if (touch.clientX >= halfWidth && lookTouchId === null) {
+                    lookTouchId = touch.identifier;
+                    lastLookPos = { x: touch.clientX, y: touch.clientY };
+                }
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+
+                if (touch.identifier === moveTouchId) {
+                    const deltaX = touch.clientX - moveTouchStart.x;
+                    const deltaY = touch.clientY - moveTouchStart.y;
+                    const maxRadius = 40;
+
+                    const distance = Math.min(Math.hypot(deltaX, deltaY), maxRadius);
+                    const angle = Math.atan2(deltaY, deltaX);
+
+                    const stickX = Math.cos(angle) * distance;
+                    const stickY = Math.sin(angle) * distance;
+
+                    joystickStick.style.transform = `translate(calc(-50% + ${stickX}px), calc(-50% + ${stickY}px))`;
+
+                    moveInput.x = stickX / maxRadius;
+                    moveInput.y = stickY / maxRadius;
+                }
+
+                if (touch.identifier === lookTouchId) {
+                    const deltaX = touch.clientX - lastLookPos.x;
+                    const deltaY = touch.clientY - lastLookPos.y;
+
+                    const sensitivity = 0.005;
+                    cameraYaw -= deltaX * sensitivity;
+                    cameraPitch -= deltaY * sensitivity;
+
+                    cameraPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraPitch));
+
+                    lastLookPos = { x: touch.clientX, y: touch.clientY };
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+
+                if (touch.identifier === moveTouchId) {
+                    moveTouchId = null;
+                    moveInput = { x: 0, y: 0 };
+                    joystickBase.style.display = 'none';
+                }
+                if (touch.identifier === lookTouchId) {
+                    lookTouchId = null;
+                }
+            }
+        }
+
+        function handleActionClick() {
+            if (isDead) return;
+
+            // Option 1: THROW ENEMY WITH DIRECTIONAL AIM (PITCH & YAW)
+            if (isHoldingEnemy) {
+                isHoldingEnemy = false;
+                isEnemyThrown = true;
+
+                const cameraDirection = new THREE.Vector3();
+                camera.getWorldDirection(cameraDirection);
+
+                enemy.position.copy(camera.position).add(cameraDirection.clone().multiplyScalar(1));
+                enemyVelocity.copy(cameraDirection).multiplyScalar(ENEMY_THROW_FORCE);
+                return;
+            }
+
+            // Option 2: PICK UP KNOCKED DOWN ENEMY (5s window)
+            if (isEnemyKnockedDown && !isHoldingBall) {
+                const distToEnemy = camera.position.distanceTo(enemy.position);
+                if (distToEnemy <= PICKUP_DISTANCE) {
+                    isHoldingEnemy = true;
+                    enemyHoldTimer = 5.0;
+                    return;
+                }
+            }
+
+            // Option 3: THROW / PICK UP BALL
+            if (isHoldingBall) {
+                isHoldingBall = false;
+                isReturning = false;
+
+                const cameraDirection = new THREE.Vector3();
+                camera.getWorldDirection(cameraDirection);
+
+                ball.position.copy(camera.position).add(cameraDirection.clone().multiplyScalar(1));
+                ballVelocity.copy(cameraDirection).multiplyScalar(THROW_FORCE);
+                ballVelocity.y = Math.max(ballVelocity.y, 1.5);
+            } else if (!isHoldingEnemy) {
+                const distance = camera.position.distanceTo(ball.position);
+                if (distance <= PICKUP_DISTANCE) {
+                    isHoldingBall = true;
+                    isReturning = false;
+                }
+            }
+        }
+
+        function takeStabDamage(damageAmount) {
+            health = Math.max(0, health - damageAmount);
+
+            const healthPercent = (health / 100) * 100;
+            healthBar.style.width = healthPercent + '%';
+
+            if (health <= 30) {
+                healthBar.style.backgroundColor = '#e74c3c';
+            } else if (health <= 60) {
+                healthBar.style.backgroundColor = '#f1c40f';
+            }
+
+            if (health <= 0) {
+                triggerGameOver();
+            }
+        }
+
+        function triggerGameOver() {
+            isDead = true;
+            instructions.style.display = 'none';
+            actionBtn.style.display = 'none';
+            joystickBase.style.display = 'none';
+            finalPinsVal.textContent = pinsKnockedCount;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+            prevTime = time;
+
+            if (!isDead) {
+                camera.rotation.x = cameraPitch;
+                camera.rotation.y = cameraYaw;
+
+                if (Math.abs(moveInput.x) > 0.05 || Math.abs(moveInput.y) > 0.05) {
+                    const moveSpeed = 6.0 * delta;
+
+                    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
+                    const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
+
+                    playerPosition.addScaledVector(forward, -moveInput.y * moveSpeed);
+                    playerPosition.addScaledVector(side, moveInput.x * moveSpeed);
+                }
+
+                camera.position.copy(playerPosition);
+            }
+
+            // ENEMY STATE & AI PROCESSING
+            if (!isDead) {
+                if (enemyAttackCooldown > 0) enemyAttackCooldown -= delta;
+
+                if (isHoldingEnemy) {
+                    const holdOffset = new THREE.Vector3(0.2, -0.4, -1.2);
+                    holdOffset.applyQuaternion(camera.quaternion);
+                    enemy.position.copy(camera.position).add(holdOffset);
+
+                    enemyHoldTimer -= delta;
+                    if (enemyHoldTimer <= 0) {
+                        isHoldingEnemy = false;
+                        isEnemyKnockedDown = false;
+                        enemy.rotation.set(0, enemy.rotation.y, 0);
+                    }
+                } else if (isEnemyThrown) {
+                    enemyVelocity.y -= GRAVITY * delta;
+                    enemy.position.addScaledVector(enemyVelocity, delta);
+                    enemy.rotation.z += 10 * delta;
+
+                    if (enemy.position.y <= 0) {
+                        enemy.position.y = 0;
+                        enemyVelocity.set(0, 0, 0);
+                        isEnemyThrown = false;
+                        enemy.rotation.set(0, enemy.rotation.y, 0);
+                        enemyKnockdownTimer = 2.0; 
+                    }
+
+                    // Check if Thrown Enemy hits Bowling Pins!
+                    pins.forEach(pin => {
+                        if (!pin.isKnockedDown) {
+                            const distToPin = pin.mesh.position.distanceTo(enemy.position);
+                            if (distToPin < ENEMY_RADIUS + 0.4) {
+                                pin.isKnockedDown = true;
+                                const impactDir = pin.mesh.position.clone().sub(enemy.position).normalize();
+                                pin.velocity.copy(impactDir).multiplyScalar(12);
+                                pin.velocity.y = Math.random() * 4 + 2;
+                                pin.angularVel.set(Math.random() * 10, Math.random() * 10, Math.random() * 10);
+                                addPinScore(1);
+                                updateScoreboard();
+                            }
+                        }
+                    });
+                } else if (isEnemyKnockedDown) {
+                    enemyKnockdownTimer -= delta;
+                    if (enemyKnockdownTimer <= 0) {
+                        isEnemyKnockedDown = false;
+                        enemy.rotation.set(0, enemy.rotation.y, 0);
+                    }
+                } else {
+                    const enemyPos2D = new THREE.Vector2(enemy.position.x, enemy.position.z);
+                    const playerPos2D = new THREE.Vector2(playerPosition.x, playerPosition.z);
+                    const distanceToPlayer = enemyPos2D.distanceTo(playerPos2D);
+
+                    const angleToPlayer = Math.atan2(playerPosition.x - enemy.position.x, playerPosition.z - enemy.position.z);
+                    enemy.rotation.y = angleToPlayer;
+
+                    if (distanceToPlayer > 1.2) {
+                        const moveDir = new THREE.Vector3(playerPosition.x - enemy.position.x, 0, playerPosition.z - enemy.position.z).normalize();
+                        enemy.position.addScaledVector(moveDir, ENEMY_SPEED * delta);
+                        enemyRightHand.position.z = 0.1;
+                    } else {
+                        enemyRightHand.position.z = 0.4;
+                        if (enemyAttackCooldown <= 0) {
+                            takeStabDamage(20);
+                            enemyAttackCooldown = 1.0;
+                        }
+                    }
+                }
+            }
+
+            // BALL PHYSICS PROCESSING
+            if (isHoldingBall) {
+                const holdOffset = new THREE.Vector3(0.3, -0.3, -0.8);
+                holdOffset.applyQuaternion(camera.quaternion);
+                ball.position.copy(camera.position).add(holdOffset);
+                ball.rotation.copy(camera.rotation);
+            } else if (isReturning) {
+                const returnTarget = RETURN_RACK_POS.clone();
+                ball.position.lerp(returnTarget, 5.0 * delta);
+                ball.rotation.set(0, 0, 0);
+
+                if (ball.position.distanceTo(returnTarget) < 0.15) {
+                    ball.position.copy(returnTarget);
+                    ballVelocity.set(0, 0, 0);
+                    isReturning = false;
+                }
+            } else {
+                if (ball.position.y > BALL_RADIUS || ballVelocity.lengthSq() > 0.01) {
+                    ballVelocity.y -= GRAVITY * delta;
+
+                    ball.position.x += ballVelocity.x * delta;
+                    ball.position.y += ballVelocity.y * delta;
+                    ball.position.z += ballVelocity.z * delta;
+
+                    ball.rotation.x += ballVelocity.z * delta * 0.5;
+                    ball.rotation.z -= ballVelocity.x * delta * 0.5;
+
+                    if (ball.position.y <= BALL_RADIUS) {
+                        ball.position.y = BALL_RADIUS;
+                        ballVelocity.y = -ballVelocity.y * 0.3;
+                        ballVelocity.x *= 0.96;
+                        ballVelocity.z *= 0.96;
+                    }
+
+                    if (!isEnemyKnockedDown && !isHoldingEnemy && !isEnemyThrown && ballVelocity.lengthSq() > 2) {
+                        const distToEnemy = ball.position.distanceTo(enemy.position.clone().add(new THREE.Vector3(0, 0.75, 0)));
+                        if (distToEnemy < BALL_RADIUS + ENEMY_RADIUS) {
+                            isEnemyKnockedDown = true;
+                            enemyKnockdownTimer = 5.0; 
+                            enemy.rotation.x = -Math.PI / 2;
+                            ballVelocity.multiplyScalar(-0.3);
+                        }
+                    }
+
+                    if (ball.position.z < LANE_END_Z || (ballVelocity.lengthSq() < 0.1 && ball.position.z < 0)) {
+                        isReturning = true;
+                        ballVelocity.set(0, 0, 0);
+                        ball.position.set(RETURN_RACK_POS.x, BALL_RADIUS + 0.3, ball.position.z);
+                    }
+                }
+            }
+
+            // PIN PHYSICS & COLLISION WITH BALL
+            pins.forEach(pin => {
+                if (!pin.isKnockedDown) {
+                    const distToBall = pin.mesh.position.distanceTo(ball.position);
+                    if (distToBall < BALL_RADIUS + 0.25) {
+                        pin.isKnockedDown = true;
+
+                        const impactDir = pin.mesh.position.clone().sub(ball.position).normalize();
+                        const speed = ballVelocity.length();
+                        pin.velocity.copy(impactDir).multiplyScalar(Math.max(speed * 0.6, 6));
+                        pin.velocity.y = Math.random() * 3 + 2;
+                        pin.angularVel.set(Math.random() * 10, Math.random() * 10, Math.random() * 10);
+
+                        addPinScore(1);
+                        updateScoreboard();
+                    }
+                }
+
+                if (pin.isKnockedDown) {
+                    if (pin.mesh.position.y > 0 || pin.velocity.lengthSq() > 0.01) {
+                        pin.velocity.y -= GRAVITY * delta;
+                        pin.mesh.position.addScaledVector(pin.velocity, delta);
+
+                        pin.mesh.rotation.x += pin.angularVel.x * delta;
+                        pin.mesh.rotation.y += pin.angularVel.y * delta;
+                        pin.mesh.rotation.z += pin.angularVel.z * delta;
+
+                        if (pin.mesh.position.y <= 0) {
+                            pin.mesh.position.y = 0;
+                            pin.velocity.set(0, 0, 0);
+                            pin.angularVel.multiplyScalar(0.2);
+                        }
+                    }
+                }
+            });
+
+            const remainingPins = pins.filter(p => !p.isKnockedDown).length;
+            if (remainingPins === 0 && !pinResetTimer) {
+                pinResetTimer = setTimeout(() => {
+                    createPins();
+                    pinResetTimer = null;
+                }, 2000);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
+
