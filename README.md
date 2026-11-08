@@ -6,3 +6,7 @@ shit. for android
 <img src="recording.gif" style="width:300px">  
 
 
+<img src="windows.gif" style="width:999px;">  
+
+
+
